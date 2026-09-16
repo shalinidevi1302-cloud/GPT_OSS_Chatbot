@@ -1,53 +1,61 @@
-
+@@ -0,0 +1,60 @@
+import streamlit as st
 from transformers import pipeline
 
-classifier = pipeline(
-    "text-generation",
-    model="Qwen/Qwen2.5-0.5B-Instruct"
+# Page configuration
+st.set_page_config(
+    page_title="HP AI Text Generator",
+    page_icon="🤖",
+    layout="centered"
 )
 
-def sentiment_analysis(text):
+# App title
+st.title("🤖 HP AI Text Generator")
+st.write("✨ Enter a prompt and let AI generate text for you!")
 
-    prompt = f"""
-You are a sentiment analysis system.
-
-Classify the sentiment of this text:
-
-"{text}"
-
-Possible labels:
-1. Positive
-2. Negative
-3. Neutral
-
-Answer with ONLY the label.
-"""
-
-    output = classifier(
-        prompt,
-        max_new_tokens=5,
-        do_sample=False
+# Load AI model
+@st.cache_resource
+def load_model():
+    return pipeline(
+        "text-generation",
+        model="EleutherAI/gpt-neo-125M"
     )
 
-    response = output[0]["generated_text"]
+generator = load_model()
 
-    generated = response[len(prompt):].strip()
-
-    print("--------------------------------")
-    print("Text      :", text)
-    print("Sentiment :", generated)
-    print("--------------------------------")
-
-
-# Test cases
-sentiment_analysis(
-    "The movie was amazing and I really enjoyed it."
+# User input
+prompt = st.text_area(
+    "✍️ Enter your prompt:",
+    placeholder="Artificial Intelligence is..."
 )
 
-sentiment_analysis(
-    "The service was horrible and very disappointing."
-)
+# Generate button
+if st.button("✨ Generate Text"):
 
-sentiment_analysis(
-    "The package arrived this morning."
-)
+    if prompt.strip():
+
+        with st.spinner("🤖 Generating your text..."):
+
+            result = generator(
+                prompt,
+                max_new_tokens=80,
+                num_return_sequences=1,
+                do_sample=True,
+                temperature=0.7,
+                top_p=0.9
+            )
+
+        generated_text = result[0]["generated_text"]
+
+        # Remove the original prompt
+        new_text = generated_text[len(prompt):].strip()
+
+        st.subheader("📝 Generated Text")
+
+        if new_text:
+            st.write(new_text)
+        else:
+            st.warning("No additional text was generated.")
+
+    else:
+        st.warning("⚠️ Please enter a prompt first!")
