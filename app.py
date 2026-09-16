@@ -1,61 +1,55 @@
-@@ -0,0 +1,60 @@
 import streamlit as st
-from transformers import pipeline
+from openai import OpenAI
 
-# Page configuration
 st.set_page_config(
-    page_title="HP AI Text Generator",
-    page_icon="🤖",
-    layout="centered"
+    page_title="Hugging Face Model"
 )
 
-# App title
-st.title("🤖 HP AI Text Generator")
-st.write("✨ Enter a prompt and let AI generate text for you!")
+st.title("Hugging Face Model")
+st.write("Chatbot using GPT-OSS 120B")
 
-# Load AI model
-@st.cache_resource
-def load_model():
-    return pipeline(
-        "text-generation",
-        model="EleutherAI/gpt-neo-125M"
+api_key = st.text_input(
+    "Enter your Hugging Face API Token",
+    type="password"
+)
+
+if api_key:
+
+    client = OpenAI(
+        base_url="https://router.huggingface.co/v1",
+        api_key=api_key
     )
 
-generator = load_model()
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-# User input
-prompt = st.text_area(
-    "✍️ Enter your prompt:",
-    placeholder="Artificial Intelligence is..."
-)
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
 
-# Generate button
-if st.button("✨ Generate Text"):
+    user_message = st.chat_input("Type your message...")
 
-    if prompt.strip():
+    if user_message:
 
-        with st.spinner("🤖 Generating your text..."):
+        with st.chat_message("user"):
+            st.write(user_message)
 
-            result = generator(
-                prompt,
-                max_new_tokens=80,
-                num_return_sequences=1,
-                do_sample=True,
-                temperature=0.7,
-                top_p=0.9
-            )
+        st.session_state.messages.append({
+            "role": "user",
+            "content": user_message
+        })
 
-        generated_text = result[0]["generated_text"]
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=st.session_state.messages
+        )
 
-        # Remove the original prompt
-        new_text = generated_text[len(prompt):].strip()
+        assistant_message = response.choices[0].message.content
 
-        st.subheader("📝 Generated Text")
+        with st.chat_message("assistant"):
+            st.write(assistant_message)
 
-        if new_text:
-            st.write(new_text)
-        else:
-            st.warning("No additional text was generated.")
-
-    else:
-        st.warning("⚠️ Please enter a prompt first!")
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": assistant_message
+        })
